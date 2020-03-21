@@ -29,6 +29,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#include "cycfg.h"
 #if defined(__ICCARM__) || defined(__GNUC__)
 #include "cy_pdl.h"
 #endif
@@ -56,6 +57,18 @@
 //
 #define configTOTAL_HEAP_SIZE						( ( size_t ) ( CY_SRAM_SIZE - 64 * 1024))
 #define configUSE_RTOS_HEAP                                           1
+
+
+
+#if CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_SLEEP || CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_DEEPSLEEP
+extern void vApplicationSleep( uint32_t xExpectedIdleTime );
+#define portSUPPRESS_TICKS_AND_SLEEP( xIdleTime ) vApplicationSleep( xIdleTime )
+#define configUSE_TICKLESS_IDLE  2
+#endif
+
+#if CY_CFG_PWR_DEEPSLEEP_LATENCY>0
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP CY_CFG_PWR_DEEPSLEEP_LATENCY
+#endif
 
 #define configUSE_DAEMON_TASK_STARTUP_HOOK			0
 #define configUSE_PREEMPTION						1
@@ -117,7 +130,7 @@ to exclude the API function. */
 
 /* The lowest interrupt priority that can be used in a call to a "set priority"
 function. */
-#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY			0xf
+#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY			0x7
 
 /* The highest interrupt priority that can be used by any interrupt service
 routine that makes calls to interrupt safe FreeRTOS API functions.  DO NOT CALL
