@@ -67,6 +67,32 @@ void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_sca
 	}
 
 	printf("\t");
+	printf("%d",(int)result_ptr->max_data_rate);
+	printf("\t");
+	switch(result_ptr->bss_type)
+	{
+		case CY_WCM_BSS_TYPE_INFRASTRUCTURE:
+			printf("INFR");
+		break; 	
+		case CY_WCM_BSS_TYPE_ADHOC: 
+			printf("ADHOC");
+		break;	
+		case CY_WCM__BSS_TYPE_ANY: 	
+			printf("ANY");
+		break;
+		case CY_WCM_BSS_TYPE_MESH:
+			printf("MESG");
+		break;
+		case CY_WCM_BSS_TYPE_UNKNOWN: 
+			printf("UNKWN");
+		break;
+	}
+	printf("\t");
+	printf("%c%c",result_ptr->ccode[0],result_ptr->ccode[1]);
+	printf("\t");
+	printMac(result_ptr->BSSID);
+
+	printf("\t");
 	switch(result_ptr->security)
 	{
 		case CY_WCM_SECURITY_OPEN:
