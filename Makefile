@@ -32,7 +32,7 @@
 TARGET=CY8CPROTO-062-4343W
 
 # Name of application (used to derive name of final linked file).
-APPNAME=mtb-example-psoc6-empty-app
+APPNAME=wcm-example
 
 # Name of toolchain to use. Options include:
 #
@@ -67,8 +67,7 @@ VERBOSE=
 # ... then code in directories named COMPONENT_foo and COMPONENT_bar will be
 # added to the build
 #
-COMPONENTS=
-
+COMPONENTS=FREERTOS PSOC6HAL LWIP MBEDTLS 4343W
 # Like COMPONENTS, but disable optional code that was enabled by default.
 DISABLE_COMPONENTS=
 
@@ -83,7 +82,7 @@ SOURCES=
 INCLUDES=
 
 # Add additional defines to the build process (without a leading -D).
-DEFINES=
+DEFINES=MBEDTLS_USER_CONFIG_FILE='"configs/mbedtls_user_config.h"' CYBSP_WIFI_CAPABLE
 
 # Select softfp or hardfp floating point. Default is softfp.
 VFP_SELECT=

@@ -6,9 +6,35 @@
 #include <stdio.h>
 #include "FreeRTOS.h"
 #include "task.h"
+#include "networkTask.h"
+#include "ntshell.h"
+#include "ntlibc.h"
+#include "psoc6_ntshell_port.h"
 
 volatile int uxTopUsedPriority ;
 TaskHandle_t blinkTaskHandle;
+TaskHandle_t networkTaskHandle;
+
+// Global variable with a handle to the shell
+ntshell_t ntshell;
+
+void ntShellTask()
+{
+
+  printf("Started ntshell\n");
+  setvbuf(stdin, NULL, _IONBF, 0);
+  ntshell_init(
+               &ntshell,
+               ntshell_read,
+               ntshell_write,
+               ntshell_callback,
+               (void *)&ntshell);
+  ntshell_set_prompt(&ntshell, "BlueTank>");
+  vtsend_erase_display(&ntshell.vtsend);
+  ntshell_execute(&ntshell);
+}
+
+// this will start the task
 
 void blinkTask(void *arg)
 {
@@ -41,6 +67,8 @@ int main(void)
     // Stack size in WORDs
     // Idle task = priority 0
     xTaskCreate(blinkTask, "blinkTask", configMINIMAL_STACK_SIZE,0 /* args */ ,0 /* priority */, &blinkTaskHandle);
+    xTaskCreate(networkTask, "networkTask", configMINIMAL_STACK_SIZE*8,0 /* args */ ,4/* priority */, &networkTaskHandle);
+    xTaskCreate(ntShellTask, "nt shell task", configMINIMAL_STACK_SIZE*2,0 /* args */ ,4 /* priority */, 0);
     vTaskStartScheduler();
 
 
