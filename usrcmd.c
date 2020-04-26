@@ -52,7 +52,8 @@ static int usrcmd_printargs(int argc, char **argv);
 static int usrcmd_scan(int argc, char **argv);
 static int usrcmd_connect(int argc, char **argv);
 static int usrcmd_disconnect(int argc, char **argv);
-static int usrcmd_printip(int argc, char **argv);
+static int usrcmd_print(int argc, char **argv);
+
 
 typedef struct {
     char *cmd;
@@ -68,8 +69,7 @@ static const cmd_table_t cmdlist[] = {
     { "scan","Scan networks scan [on|off]", usrcmd_scan},
     { "connect","connect ssid [pw]", usrcmd_connect},
     { "disconnect","disconnect", usrcmd_disconnect},
-    { "printip","print current ip address", usrcmd_printip},
-
+    { "print","print [ip|mac]", usrcmd_print},
 
 };
 
@@ -214,12 +214,19 @@ static int usrcmd_disconnect(int argc, char **argv)
 
 }
 
-static int usrcmd_printip(int argc, char **argv)
+static int usrcmd_print(int argc, char **argv)
 {
     networkQueueMsg_t msg;
-    msg.cmd = net_printip;
-    xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
-    
+    if(argc == 2 && strcmp(argv[1],"ip")==0)
+    {
+        msg.cmd = net_printip;
+        xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
+    }
+    if(argc == 2 && strcmp(argv[1],"mac")==0)
+    {
+        msg.cmd = net_printmac;
+        xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
+    }
     return 0;
 
 }

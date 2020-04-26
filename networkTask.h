@@ -9,6 +9,7 @@ typedef enum {
     net_connect,
     net_disconnect,
     net_printip,
+    net_printmac,
 
 } networkCmd_t;
 

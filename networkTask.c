@@ -10,6 +10,39 @@
 
 QueueHandle_t networkQueue;
 cy_wcm_ip_address_t ip_addr;
+cy_wcm_mac_t mac_addr;
+
+
+void printIp(cy_wcm_ip_address_t *ipad)
+{
+	if(ip_addr.version == CY_WCM_IP_VER_V4)
+			{
+				//printf("%d.%d.%d.%d\n",(int)ip_addr.ip.v4>>0&0xFF,(int)ip_addr.ip.v4>>8&0xFF,(int)ip_addr.ip.v4>>16&0xFF,(int)ip_addr.ip.v4>>24&0xFF);
+				printf("%d.%d.%d.%d\n",(int)ipad->ip.v4>>0&0xFF,(int)ipad->ip.v4>>8&0xFF,(int)ipad->ip.v4>>16&0xFF,(int)ipad->ip.v4>>24&0xFF);
+
+			}
+			else if (ip_addr.version == CY_WCM_IP_VER_V6){
+				for(int i=0;i<4;i++)
+				{
+					printf("%0X:",(unsigned int)ip_addr.ip.v6[i]);
+				}
+				printf("\n");
+			}
+			else
+			{
+				printf("IP ERROR %d\n",ipad->version);
+			}			
+}
+
+void printMac(cy_wcm_mac_t mac)
+{
+	for(int i=0;i<CY_WCM_MAC_ADDR_LEN;i++)
+	{
+		uint8_t val = mac[i];
+		printf("%02X:",val);
+
+	}
+}
 
 void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_scan_status_t status )
 {
@@ -33,29 +66,63 @@ void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_sca
 		break;
 	}
 
+	printf("\t");
+	switch(result_ptr->security)
+	{
+		case CY_WCM_SECURITY_OPEN:
+			printf("OPEN");
+		break;
+    	case CY_WCM_SECURITY_WEP_PSK:
+			printf("WEP_PSK");
+		break;
+		case CY_WCM_SECURITY_WEP_SHARED:
+			printf("WEP_SHARED");
+		break;
+    	case CY_WCM_SECURITY_WPA_TKIP_PSK:
+			printf("WPA_TKIP_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA_AES_PSK:
+			printf("WPA_AES_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA_MIXED_PSK:
+			printf("WPA_MIXED_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA2_AES_PSK:
+			printf("WPA2_AES_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA2_TKIP_PSK:
+			printf("WPA2_TKIP_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA2_MIXED_PSK:
+			printf("WPA2_MIXED_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA2_FBT_PSK:
+			printf("WPA2_FBT_PSK");
+		break;
+		case CY_WCM_SECURITY_WPA3_SAE:
+			printf("WPA3_SAE");
+		break;
+		case CY_WCM_SECURITY_WPA3_WPA2_PSK:
+			printf("WPA3_WPA2_PSK");
+		break;
+		case CY_WCM_SECURITY_IBSS_OPEN:
+			printf("IBSS_OPEN");
+		break;
+		case CY_WCM_SECURITY_WPS_SECURE:
+			printf("WPS_SECURE");
+		break;
+		case CY_WCM_SECURITY_UNKNOWN:
+			printf("UNKNOWN");
+		break;
+
+		case CY_WCM_SECURITY_FORCE_32_BIT:
+			printf("FORCE_32_BIT");
+		break;
+	}
+
 	printf("\n");
 }
 
-void printIp(cy_wcm_ip_address_t *ipad)
-{
-	if(ip_addr.version == CY_WCM_IP_VER_V4)
-			{
-				//printf("%d.%d.%d.%d\n",(int)ip_addr.ip.v4>>0&0xFF,(int)ip_addr.ip.v4>>8&0xFF,(int)ip_addr.ip.v4>>16&0xFF,(int)ip_addr.ip.v4>>24&0xFF);
-				printf("%d.%d.%d.%d\n",(int)ipad->ip.v4>>0&0xFF,(int)ipad->ip.v4>>8&0xFF,(int)ipad->ip.v4>>16&0xFF,(int)ipad->ip.v4>>24&0xFF);
-
-			}
-			else if (ip_addr.version == CY_WCM_IP_VER_V6){
-				for(int i=0;i<4;i++)
-				{
-					printf("%0X:",(unsigned int)ip_addr.ip.v6[i]);
-				}
-				printf("\n");
-			}
-			else
-			{
-				printf("IP ERROR %d\n",ipad->version);
-			}			
-}
 
 void wcmCallback(cy_wcm_event_t event, cy_wcm_event_data_t *event_data)
 {
@@ -141,13 +208,20 @@ void networkTask(void *arg)
 			result = cy_wcm_get_ip_addr	(CY_WCM_INTERFACE_TYPE_STA,&ip_addr,1);
 			if(result == CY_RSLT_SUCCESS)
 			{
-				printf("Ip result=%d ",result);
+				printf("Ip result=%d ",(int)result);
 				printIp(&ip_addr);
 			}
 			else if(result == CY_RSLT_WCM_NETWORK_DOWN)
 				printf("Network disconnected\n");
 			else 
-				printf("Ip result=%d ",result);
+				printf("Ip result=%d ",(int)result);
+			break;
+
+			case net_printmac:
+				result = cy_wcm_get_mac_addr(CY_WCM_INTERFACE_TYPE_STA,&mac_addr,1);
+				printf("res=%d MAC Address =",(int)result);
+				printMac(mac_addr);
+				printf("\n");
 			break;
 	
 		}
