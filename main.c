@@ -29,7 +29,7 @@ void ntShellTask()
                ntshell_write,
                ntshell_callback,
                (void *)&ntshell);
-  ntshell_set_prompt(&ntshell, "BlueTank>");
+  ntshell_set_prompt(&ntshell, "AnyCloud> ");
   vtsend_erase_display(&ntshell.vtsend);
   ntshell_execute(&ntshell);
 }

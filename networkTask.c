@@ -19,9 +19,7 @@ void printIp(cy_wcm_ip_address_t *ipad)
 {
 	if(ip_addr.version == CY_WCM_IP_VER_V4)
 	{
-		//printf("%d.%d.%d.%d\n",(int)ip_addr.ip.v4>>0&0xFF,(int)ip_addr.ip.v4>>8&0xFF,(int)ip_addr.ip.v4>>16&0xFF,(int)ip_addr.ip.v4>>24&0xFF);
-		printf("%d.%d.%d.%d\n",(int)ipad->ip.v4>>0&0xFF,(int)ipad->ip.v4>>8&0xFF,(int)ipad->ip.v4>>16&0xFF,(int)ipad->ip.v4>>24&0xFF);
-
+		printf("%d.%d.%d.%d",(int)ipad->ip.v4>>0&0xFF,(int)ipad->ip.v4>>8&0xFF,(int)ipad->ip.v4>>16&0xFF,(int)ipad->ip.v4>>24&0xFF);
 	}
 	else if (ip_addr.version == CY_WCM_IP_VER_V6)
 	{
@@ -29,11 +27,10 @@ void printIp(cy_wcm_ip_address_t *ipad)
 		{
 			printf("%0X:",(unsigned int)ip_addr.ip.v6[i]);
 		}
-		printf("\n");
 	}
 	else
 	{
-		printf("IP ERROR %d\n",ipad->version);
+		printf("IP ERROR %d",ipad->version);
 	}			
 }
 
@@ -43,13 +40,14 @@ void printMac(cy_wcm_mac_t mac)
 	{
 		uint8_t val = mac[i];
 		printf("%02X:",val);
-
 	}
 }
 
+// This callback is used to find a specific SSID and then store the security type into the user data
+// When I want to connect it will scan with a "filter" and the user data will be a pointer to the
+// place to store the security
 void findApCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_scan_status_t status )
 {
-	printf("FindAPCallback %d security=%d\n",status,result_ptr->security);
 	if(status == CY_WCM_SCAN_INCOMPLETE)
 	{
 		whd_security_t *mySecurity = (whd_security_t *)user_data;
@@ -59,7 +57,8 @@ void findApCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_s
 	}
 }
 
-
+// This function is called back when the user asks for an overall scan.
+// It just prints out the information about the networks that it hears about
 void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_scan_status_t status )
 {
 	if(status == CY_WCM_SCAN_COMPLETE)
@@ -76,9 +75,6 @@ void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_sca
 		break;
 		case CY_WCM_WIFI_BAND_2_4GHZ:
 			printf("2.4 GHZ");
-		break;
-		default:
-		printf("%d",result_ptr->channel);
 		break;
 	}
 
@@ -161,22 +157,15 @@ void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_sca
 			printf("FORCE_32_BIT");
 		break;
 	}
-
 	printf("\n");
+
 }
 
-
+// This function is the event callback for the wireless connection manager.
 void wcmCallback(cy_wcm_event_t event, cy_wcm_event_data_t *event_data)
 {
-
 	cy_wcm_ip_address_t *ipad;
 	ipad = (cy_wcm_ip_address_t *)event_data;
-
-	if(ipad == &ip_addr)
-	{
-		printf("Address are same\n");
-	}
-
 
 	switch(event)
 	{
@@ -189,82 +178,82 @@ void wcmCallback(cy_wcm_event_t event, cy_wcm_event_data_t *event_data)
 		case    CY_WCM_EVENT_IP_CHANGED:
 			printf("IP Address Changed ");
 			printIp(ipad);
+			printf("\n");
 		break;
 	}
 }
 
+// The networkTask will:
+// - startup the wireless connection manager
+// - sit waiting on the rtos queue... getting messages from other tasks
+// - and do ( net_scan, net_connect, net_disconnect, net_printip, net_printmac,)
 
 void networkTask(void *arg)
 {
-	cy_wcm_config_t config;
 	cy_rslt_t result;
+	cy_wcm_config_t config;
+	cy_wcm_scan_filter_t scanFilter;
 
 	memset(&config, 0, sizeof(cy_wcm_config_t));
     config.interface = CY_WCM_INTERFACE_TYPE_STA;
-
 	cy_wcm_init	(&config);
 
 	cy_wcm_register_event_callback(	wcmCallback	);
-	
-	cy_wcm_scan_filter_t scanFilter;
-
 
 	networkQueue = xQueueCreate( 5, sizeof(networkQueueMsg_t));
 
 	while(1)
 	{
 		networkQueueMsg_t msg;
-		cy_wcm_connect_params_t connect_params;
 
-		xQueueReceive(networkQueue,(void *)&msg,portMAX_DELAY);
-		printf("Received cmd=%d val=%d\n",(int)msg.cmd,(int)msg.val0);
+		xQueueReceive(networkQueue,(void *)&msg,portMAX_DELAY);  // Wait for commands from other tasks
+
 		switch(msg.cmd)
 		{
-			case net_scan:
+			case net_scan: // 0=stop scan !0=start scan
 				if(msg.val0 == 0)
-				{
 					cy_wcm_stop_scan();
-				}
 				else
-				{
 					cy_wcm_start_scan(scanCallback,0,0);				
-				}
-				
 			break;
 
 			case net_connect:
-
-
-				printf("SSID=%s PW=%s\n",(char *)msg.val0,(char *)msg.val1);
+			{
+				cy_wcm_connect_params_t connect_params;
 				memset(&connect_params, 0, sizeof(cy_wcm_connect_params_t));
 				strcpy((char *)connect_params.ap_credentials.SSID,(char *)msg.val0);
 				strcpy((char *)connect_params.ap_credentials.password,(char *)msg.val1);
 
-				// setup scan filter
+				// setup scan filter - In order to connect to an SSID you need to know the security type
+				// To find the security I scan for JUST that SSID which will tell me the security type
 				scanFilter.mode = CY_WCM_SCAN_FILTER_TYPE_SSID;
-				strcpy(scanFilter.param.SSID,msg.val0);
+				strcpy((char *)scanFilter.param.SSID,(char *)msg.val0);
+
+				// The scan callback will either 1) unlock the semaphore or 2) timeout (meaning it didnt find it)
 				scanApSempahore = xSemaphoreCreateBinary();
-				// start scan
 				cy_wcm_start_scan(findApCallback,&connect_params.ap_credentials.security,&scanFilter);
 				
+				// The semaphore will return pdFALSE if it TIMES out or pdTrue IF it got unlocked by the scan
 				if(xSemaphoreTake( scanApSempahore, pdMS_TO_TICKS(10000)) == pdTRUE)
 				{
-					printf("Scan Found Security = %d\n",connect_params.ap_credentials.security);
 					result = cy_wcm_connect_ap(&connect_params,&ip_addr);
-					printf("Connect result=%d\n",(int)result);
-				
+					if(result == CY_RSLT_SUCCESS)
+						printf("Connect Succeeded SSID=%s\n",(char *)msg.val0);
+					else
+					{
+						printf("Connect to %s failed\n",(char *)msg.val0);
+					}	
 				}
 				else
 				{
-					printf("Connect semaphore failed\n");
+					printf("Scan semaphore failed - couldnt find AP\n");
 				}
-				
-
-				// wait on semaphore
-    			//connect_params.ap_credentials.security = CY_WCM_SECURITY_WPA2_AES_PSK;
-				free((void *)msg.val0);
+				free((void *)msg.val0); // Free the SSID and PW that was passed by the caller
 				free((void *)msg.val1);
+
+			}
 			break;
+
 			case net_disconnect:
 				cy_wcm_disconnect_ap();
 			break;
@@ -273,22 +262,27 @@ void networkTask(void *arg)
 			result = cy_wcm_get_ip_addr	(CY_WCM_INTERFACE_TYPE_STA,&ip_addr,1);
 			if(result == CY_RSLT_SUCCESS)
 			{
-				printf("Ip result=%d ",(int)result);
+				printf("IP Address=");
 				printIp(&ip_addr);
+				printf("\n");
 			}
 			else if(result == CY_RSLT_WCM_NETWORK_DOWN)
 				printf("Network disconnected\n");
 			else 
-				printf("Ip result=%d ",(int)result);
+				printf("IP Address call return unknown %d\n",(int)result);
 			break;
 
 			case net_printmac:
 				result = cy_wcm_get_mac_addr(CY_WCM_INTERFACE_TYPE_STA,&mac_addr,1);
-				printf("res=%d MAC Address =",(int)result);
-				printMac(mac_addr);
-				printf("\n");
+				if(result == CY_RSLT_SUCCESS)
+				{
+					printf("MAC Address =");
+					printMac(mac_addr);
+					printf("\n");
+				}
+				else
+					printf("MAC Address = Unknown\n");
 			break;
-	
 		}
 	}
 

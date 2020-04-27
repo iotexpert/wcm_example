@@ -192,6 +192,16 @@ static int usrcmd_connect(int argc, char **argv)
 {
     networkQueueMsg_t msg;
 
+    if(argc == 2)
+    {
+        msg.val0 = (uint32_t)malloc(strlen(argv[1])+1);
+        msg.val1 = (uint32_t)malloc(sizeof(""));
+        strcpy((char *)msg.val0,argv[1]);
+        strcpy((char *)msg.val1,"");
+        msg.cmd = net_connect;
+        xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
+    }
+    
     if(argc == 3)
     {
         msg.val0 = (uint32_t)malloc(strlen(argv[1])+1);
@@ -201,6 +211,8 @@ static int usrcmd_connect(int argc, char **argv)
         msg.cmd = net_connect;
         xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
     }
+
+    
     return 0;
 
 }
