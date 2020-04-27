@@ -5,33 +5,36 @@
 #include "task.h"
 #include "cy_wcm.h"
 #include "cy_wcm_error.h"
+#include "whd_types.h"
 #include "queue.h"
+#include "semphr.h"
 #include "networkTask.h"
 
 QueueHandle_t networkQueue;
 cy_wcm_ip_address_t ip_addr;
 cy_wcm_mac_t mac_addr;
-
+SemaphoreHandle_t scanApSempahore = NULL;
 
 void printIp(cy_wcm_ip_address_t *ipad)
 {
 	if(ip_addr.version == CY_WCM_IP_VER_V4)
-			{
-				//printf("%d.%d.%d.%d\n",(int)ip_addr.ip.v4>>0&0xFF,(int)ip_addr.ip.v4>>8&0xFF,(int)ip_addr.ip.v4>>16&0xFF,(int)ip_addr.ip.v4>>24&0xFF);
-				printf("%d.%d.%d.%d\n",(int)ipad->ip.v4>>0&0xFF,(int)ipad->ip.v4>>8&0xFF,(int)ipad->ip.v4>>16&0xFF,(int)ipad->ip.v4>>24&0xFF);
+	{
+		//printf("%d.%d.%d.%d\n",(int)ip_addr.ip.v4>>0&0xFF,(int)ip_addr.ip.v4>>8&0xFF,(int)ip_addr.ip.v4>>16&0xFF,(int)ip_addr.ip.v4>>24&0xFF);
+		printf("%d.%d.%d.%d\n",(int)ipad->ip.v4>>0&0xFF,(int)ipad->ip.v4>>8&0xFF,(int)ipad->ip.v4>>16&0xFF,(int)ipad->ip.v4>>24&0xFF);
 
-			}
-			else if (ip_addr.version == CY_WCM_IP_VER_V6){
-				for(int i=0;i<4;i++)
-				{
-					printf("%0X:",(unsigned int)ip_addr.ip.v6[i]);
-				}
-				printf("\n");
-			}
-			else
-			{
-				printf("IP ERROR %d\n",ipad->version);
-			}			
+	}
+	else if (ip_addr.version == CY_WCM_IP_VER_V6)
+	{
+		for(int i=0;i<4;i++)
+		{
+			printf("%0X:",(unsigned int)ip_addr.ip.v6[i]);
+		}
+		printf("\n");
+	}
+	else
+	{
+		printf("IP ERROR %d\n",ipad->version);
+	}			
 }
 
 void printMac(cy_wcm_mac_t mac)
@@ -43,6 +46,19 @@ void printMac(cy_wcm_mac_t mac)
 
 	}
 }
+
+void findApCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_scan_status_t status )
+{
+	printf("FindAPCallback %d security=%d\n",status,result_ptr->security);
+	if(status == CY_WCM_SCAN_INCOMPLETE)
+	{
+		whd_security_t *mySecurity = (whd_security_t *)user_data;
+	 	*mySecurity = result_ptr->security;
+		cy_wcm_stop_scan();
+		xSemaphoreGive(scanApSempahore);
+	}
+}
+
 
 void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_scan_status_t status )
 {
@@ -190,6 +206,8 @@ void networkTask(void *arg)
 
 	cy_wcm_register_event_callback(	wcmCallback	);
 	
+	cy_wcm_scan_filter_t scanFilter;
+
 
 	networkQueue = xQueueCreate( 5, sizeof(networkQueueMsg_t));
 
@@ -215,16 +233,37 @@ void networkTask(void *arg)
 			break;
 
 			case net_connect:
-				
+
+
 				printf("SSID=%s PW=%s\n",(char *)msg.val0,(char *)msg.val1);
 				memset(&connect_params, 0, sizeof(cy_wcm_connect_params_t));
 				strcpy((char *)connect_params.ap_credentials.SSID,(char *)msg.val0);
 				strcpy((char *)connect_params.ap_credentials.password,(char *)msg.val1);
+
+				// setup scan filter
+				scanFilter.mode = CY_WCM_SCAN_FILTER_TYPE_SSID;
+				strcpy(scanFilter.param.SSID,msg.val0);
+				scanApSempahore = xSemaphoreCreateBinary();
+				// start scan
+				cy_wcm_start_scan(findApCallback,&connect_params.ap_credentials.security,&scanFilter);
+				
+				if(xSemaphoreTake( scanApSempahore, pdMS_TO_TICKS(10000)) == pdTRUE)
+				{
+					printf("Scan Found Security = %d\n",connect_params.ap_credentials.security);
+					result = cy_wcm_connect_ap(&connect_params,&ip_addr);
+					printf("Connect result=%d\n",(int)result);
+				
+				}
+				else
+				{
+					printf("Connect semaphore failed\n");
+				}
+				
+
+				// wait on semaphore
+    			//connect_params.ap_credentials.security = CY_WCM_SECURITY_WPA2_AES_PSK;
 				free((void *)msg.val0);
 				free((void *)msg.val1);
-    			connect_params.ap_credentials.security = CY_WCM_SECURITY_WPA2_AES_PSK;
-				result = cy_wcm_connect_ap(&connect_params,&ip_addr);
-				printf("Connect result=%d\n",(int)result);
 			break;
 			case net_disconnect:
 				cy_wcm_disconnect_ap();
