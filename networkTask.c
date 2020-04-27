@@ -214,7 +214,12 @@ void networkTask(void *arg)
 				if(msg.val0 == 0)
 					cy_wcm_stop_scan();
 				else
-					cy_wcm_start_scan(scanCallback,0,0);				
+				{
+					printf("\n");
+					result = cy_wcm_start_scan(scanCallback,0,0);
+					if(result != CY_RSLT_SUCCESS)
+						printf("Scan error\n");
+				}
 			break;
 
 			case net_connect:
