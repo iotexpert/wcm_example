@@ -43,6 +43,12 @@
 extern ntshell_t ntshell;
 
 typedef int (*USRCMDFUNC)(int argc, char **argv);
+typedef struct {
+    char *cmd;
+    char *desc;
+    USRCMDFUNC func;
+} cmd_table_t;
+
 
 static int usrcmd_ntopt_callback(int argc, char **argv, void *extobj);
 static int usrcmd_help(int argc, char **argv);
@@ -53,13 +59,6 @@ static int usrcmd_scan(int argc, char **argv);
 static int usrcmd_connect(int argc, char **argv);
 static int usrcmd_disconnect(int argc, char **argv);
 static int usrcmd_print(int argc, char **argv);
-
-
-typedef struct {
-    char *cmd;
-    char *desc;
-    USRCMDFUNC func;
-} cmd_table_t;
 
 static const cmd_table_t cmdlist[] = {
     { "help", "This is a description text string for help command.", usrcmd_help },
@@ -160,7 +159,6 @@ static int usrcmd_scan(int argc, char **argv)
         if(strcmp(argv[1],"on") == 0)
         {
             state=1;
-
         } 
         else if(strcmp(argv[1],"off") == 0)
         {
@@ -184,7 +182,6 @@ static int usrcmd_scan(int argc, char **argv)
     msg.val0 = state;
     xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
     return 0;
-
 }
 
 
@@ -223,7 +220,6 @@ static int usrcmd_disconnect(int argc, char **argv)
     xQueueSend(networkQueue,(const void *)&msg,portMAX_DELAY);
     
     return 0;
-
 }
 
 static int usrcmd_print(int argc, char **argv)

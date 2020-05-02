@@ -152,7 +152,6 @@ void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_sca
 		case CY_WCM_SECURITY_UNKNOWN:
 			printf("UNKNOWN");
 		break;
-
 		case CY_WCM_SECURITY_FORCE_32_BIT:
 			printf("FORCE_32_BIT");
 		break;
@@ -226,8 +225,6 @@ void networkTask(void *arg)
 			{
 				cy_wcm_connect_params_t connect_params;
 				memset(&connect_params, 0, sizeof(cy_wcm_connect_params_t));
-				strcpy((char *)connect_params.ap_credentials.SSID,(char *)msg.val0);
-				strcpy((char *)connect_params.ap_credentials.password,(char *)msg.val1);
 
 				// setup scan filter - In order to connect to an SSID you need to know the security type
 				// To find the security I scan for JUST that SSID which will tell me the security type
@@ -241,6 +238,9 @@ void networkTask(void *arg)
 				// The semaphore will return pdFALSE if it TIMES out or pdTrue IF it got unlocked by the scan
 				if(xSemaphoreTake( scanApSempahore, pdMS_TO_TICKS(10000)) == pdTRUE)
 				{
+					strcpy((char *)connect_params.ap_credentials.SSID,(char *)msg.val0);
+					strcpy((char *)connect_params.ap_credentials.password,(char *)msg.val1);
+
 					result = cy_wcm_connect_ap(&connect_params,&ip_addr);
 					if(result == CY_RSLT_SUCCESS)
 						printf("Connect Succeeded SSID=%s\n",(char *)msg.val0);

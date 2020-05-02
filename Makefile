@@ -30,6 +30,8 @@
 
 # Target board/hardware
 TARGET=CY8CPROTO-062-4343W
+#TARGET=CY8CKIT-062S2-43012
+#TARGET=CY8CKIT-062S2-43012
 
 # Name of application (used to derive name of final linked file).
 APPNAME=wcm-example
@@ -67,7 +69,7 @@ VERBOSE=
 # ... then code in directories named COMPONENT_foo and COMPONENT_bar will be
 # added to the build
 #
-COMPONENTS=FREERTOS PSOC6HAL LWIP MBEDTLS 4343W
+COMPONENTS=FREERTOS PSOC6HAL LWIP MBEDTLS 43012
 # Like COMPONENTS, but disable optional code that was enabled by default.
 DISABLE_COMPONENTS=
 
