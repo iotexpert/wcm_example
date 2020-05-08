@@ -49,26 +49,21 @@ void blinkTask(void *arg)
 
 int main(void)
 {
-    cy_rslt_t result;
     uxTopUsedPriority = configMAX_PRIORITIES - 1 ; // enable OpenOCD Thread Debugging
 
-    /* Initialize the device and board peripherals */
-    result = cybsp_init() ;
-    if (result != CY_RSLT_SUCCESS)
-    {
-        CY_ASSERT(0);
-    }
-
+    cybsp_init() ;
     __enable_irq();
 
     cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, CY_RETARGET_IO_BAUDRATE);
     setvbuf(stdin, NULL, _IONBF, 0);
+ 
+    printf("Started WCM Example\n");
 
     // Stack size in WORDs
     // Idle task = priority 0
-    xTaskCreate(blinkTask, "blinkTask", configMINIMAL_STACK_SIZE,0 /* args */ ,0 /* priority */, &blinkTaskHandle);
+    xTaskCreate(blinkTask, "blinkTask", configMINIMAL_STACK_SIZE,0 /* args */ ,2 /* priority */, &blinkTaskHandle);
     xTaskCreate(networkTask, "networkTask", configMINIMAL_STACK_SIZE*8,0 /* args */ ,4/* priority */, &networkTaskHandle);
-    xTaskCreate(ntShellTask, "nt shell task", configMINIMAL_STACK_SIZE*2,0 /* args */ ,4 /* priority */, 0);
+    xTaskCreate(ntShellTask, "nt shell task", configMINIMAL_STACK_SIZE*2,0 /* args */ ,1 /* priority */, 0);
     vTaskStartScheduler();
 
 

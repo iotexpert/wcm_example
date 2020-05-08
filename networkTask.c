@@ -89,7 +89,7 @@ void scanCallback( cy_wcm_scan_result_t *result_ptr, void *user_data, cy_wcm_sca
 		case CY_WCM_BSS_TYPE_ADHOC: 
 			printf("ADHOC");
 		break;	
-		case CY_WCM__BSS_TYPE_ANY: 	
+		case CY_WCM_BSS_TYPE_ANY: 	
 			printf("ANY");
 		break;
 		case CY_WCM_BSS_TYPE_MESH:
@@ -168,7 +168,7 @@ void wcmCallback(cy_wcm_event_t event, cy_wcm_event_data_t *event_data)
 
 	switch(event)
 	{
-		case CY_WCM_EVENT_CONNECTED:
+		case CY_WCM_EVENT_RECONNECTED:
 			printf("Connected\n");
 		break;
 		case CY_WCM_EVENT_DISCONNECTED:
